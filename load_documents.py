@@ -14,7 +14,7 @@ for number, chunk in enumerate(chunks, start=1):
     print(chunk)
 
 
-question = "How many books can students borrow?"
+question = "How long can students book study rooms?"
 question_words = set(question.lower().replace("?", "").split())
 
 best_score = 0 
@@ -26,7 +26,7 @@ for chunk in chunks:
     score = len(shared_words)
 
     print('\n')
-    print("Score:", score, "Shared words,", shared_words)
+    print(f"Score: {score}, Shared words: {shared_words}")
 
 
     if score > best_score:
