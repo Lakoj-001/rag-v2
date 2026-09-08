@@ -23,7 +23,7 @@ print("Number of chunks:", len(documents))
 
 
 
-question = "How much doest it cost to book study rooms?"
+question = "How much does it cost to book study rooms?"
 
 question_words = set(question.lower().replace("?", "").split())
 
