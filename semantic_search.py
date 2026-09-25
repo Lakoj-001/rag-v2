@@ -18,7 +18,7 @@ file_path = Path("data/notes.txt")
 text = file_path.read_text(encoding="utf-8")
 chunks = text.split("\n\n")
 
-question = "How long can students book study rooms?"
+question = "How many books can students borrow, and how long can they book study rooms?"
 
 def cosine_similarity(vector_a, vector_b):
     dot_product = 0 
@@ -56,7 +56,9 @@ print("Question vector dimensions:", len(question_vector))
 
 scored_chunks = []
 
-for chunk, embedding in zip(chunks, chunk_embeddings):
+for chunk_id, (chunk, embedding) in enumerate(
+    zip(chunks, chunk_embeddings), start=1
+):
     chunk_vector = embedding.values
     score = cosine_similarity(question_vector, chunk_vector)
 
@@ -64,13 +66,16 @@ for chunk, embedding in zip(chunks, chunk_embeddings):
     print("Chunk:", chunk)
     print()
 
-    scored_chunks.append((score, chunk))
+    scored_chunks.append((score, chunk_id, chunk))
 
 scored_chunks.sort(key=lambda item: item[0], reverse=True)
 
 top_chunks = scored_chunks[:2]
 
-context = "\n\n".join(chunk for score, chunk in top_chunks)
+context = "\n\n".join(
+    f"[Chunk: {chunk_id}]\n{chunk}"
+    for score, chunk_id, chunk in top_chunks
+)
 
 print("Selected context:", context)
 
@@ -78,6 +83,9 @@ print("Selected context:", context)
 prompt = f"""
 Answer the question using only the context below.
 If the context does not contain the answer, say "I dont know based on the provided context."
+Cite each factual claim using the supporting chunk label, such as [Chunk 2].
+Use only labels provided in the context.
+If you cannot answer from the context, give the refusal without a citation.
 
 Context: 
 {context}
