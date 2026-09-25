@@ -18,8 +18,25 @@ file_path = Path("data/notes.txt")
 text = file_path.read_text(encoding="utf-8")
 chunks = text.split("\n\n")
 
-question = "How many books can students borrow, and how long can they book study rooms?"
+test_cases = [
+    {
+        "question": "How many books can students borrow, and how long can they book study rooms?",
+        "expected": "Four books and two hours, citing chunks 2 and 3"
+    }, 
+    {
+        "question": "How long can students book study room?", 
+        "expected": "Two hours, citing chunk 3"
+    }, 
+    {
+        "question": "How much does it cost to book study rooms?",
+        "expected": "Refusal without a citation: no price in the notes"
+    }, 
+    {
+        "question": "What is the capital of France?", 
+        "expected": "Refusal without a citation: no answer in the notes"
+    }  
 
+]
 def cosine_similarity(vector_a, vector_b):
     dot_product = 0 
 
@@ -41,66 +58,78 @@ chunk_response = client.models.embed_content(
 
 chunk_embeddings = chunk_response.embeddings
 
-question_response = client.models.embed_content(
-    model="gemini-embedding-001", 
-    contents=question, 
-    config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
-)
+for test_case in test_cases:
+    question = test_case["question"]
+    expected = test_case["expected"]
+
+    print("\nQuestion", question)
+    print("Expected", expected)
+
+    question_response = client.models.embed_content(
+        model="gemini-embedding-001", 
+        contents=question, 
+        config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
+    )
 
 
-question_vector = question_response.embeddings[0].values
+    question_vector = question_response.embeddings[0].values
 
-print("Number of chunks:", len(chunks))
-print("Number of chunk embeddings:", len(chunk_embeddings))
-print("Question vector dimensions:", len(question_vector))
+    print("Number of chunks:", len(chunks))
+    print("Number of chunk embeddings:", len(chunk_embeddings))
+    print("Question vector dimensions:", len(question_vector))
 
-scored_chunks = []
+    scored_chunks = []
 
-for chunk_id, (chunk, embedding) in enumerate(
-    zip(chunks, chunk_embeddings), start=1
-):
-    chunk_vector = embedding.values
-    score = cosine_similarity(question_vector, chunk_vector)
+    for chunk_id, (chunk, embedding) in enumerate(
+        zip(chunks, chunk_embeddings), start=1
+    ):
+        chunk_vector = embedding.values
+        score = cosine_similarity(question_vector, chunk_vector)
 
-    print("Similarity:", score)
-    print("Chunk:", chunk)
-    print()
+        print("Similarity:", score)
+        print("Chunk:", chunk)
+        print()
 
-    scored_chunks.append((score, chunk_id, chunk))
+        scored_chunks.append((score, chunk_id, chunk))
 
-scored_chunks.sort(key=lambda item: item[0], reverse=True)
+    scored_chunks.sort(key=lambda item: item[0], reverse=True)
 
-top_chunks = scored_chunks[:2]
+    top_chunks = scored_chunks[:2]
 
-context = "\n\n".join(
-    f"[Chunk: {chunk_id}]\n{chunk}"
-    for score, chunk_id, chunk in top_chunks
-)
+    retrieved_ids = [
+        chunk_id for score, chunk_id, chunk in top_chunks
+    ]
+    print("Retrieved IDs:", retrieved_ids)
 
-print("Selected context:", context)
+    context = "\n\n".join(
+        f"[Chunk: {chunk_id}]\n{chunk}"
+        for score, chunk_id, chunk in top_chunks
+    )
+
+    print("Selected context:", context)
 
 
-prompt = f"""
-Answer the question using only the context below.
-If the context does not contain the answer, say "I dont know based on the provided context."
-Cite each factual claim using the supporting chunk label, such as [Chunk 2].
-Use only labels provided in the context.
-If you cannot answer from the context, give the refusal without a citation.
+    prompt = f"""
+    Answer the question using only the context below.
+    If the context does not contain the answer, say "I dont know based on the provided context."
+    Cite each factual claim using the supporting chunk label, such as [Chunk 2].
+    Use only labels provided in the context.
+    If you cannot answer from the context, give the refusal without a citation.
 
-Context: 
-{context}
+    Context: 
+    {context}
 
-Question:
-{question}
+    Question:
+    {question}
 
-"""
+    """
 
-print(prompt)
+    print(prompt)
 
-answer_response = client.interactions.create(
-    model="gemini-3.8-flash", 
-    input=prompt
-)
+    answer_response = client.interactions.create(
+        model="gemini-3.8-flash", 
+        input=prompt
+    )
 
-print("Answer:", answer_response.output_text)
+    print("Answer:", answer_response.output_text)
 
