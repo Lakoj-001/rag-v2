@@ -18,7 +18,7 @@ file_path = Path("data/notes.txt")
 text = file_path.read_text(encoding="utf-8")
 chunks = text.split("\n\n")
 
-question = "How many books can students borrow, and how long can they book study rooms?"
+question = "How long can students book study rooms?"
 
 def cosine_similarity(vector_a, vector_b):
     dot_product = 0 
@@ -54,8 +54,7 @@ print("Number of chunks:", len(chunks))
 print("Number of chunk embeddings:", len(chunk_embeddings))
 print("Question vector dimensions:", len(question_vector))
 
-best_score = float("-inf")
-best_chunk = None 
+scored_chunks = []
 
 for chunk, embedding in zip(chunks, chunk_embeddings):
     chunk_vector = embedding.values
@@ -65,15 +64,17 @@ for chunk, embedding in zip(chunks, chunk_embeddings):
     print("Chunk:", chunk)
     print()
 
-    if score > best_score:
-        best_score = score
-        best_chunk = chunk
+    scored_chunks.append((score, chunk))
 
-print("Selected chunk:", best_chunk)
-print("Best similarity:", best_score)
+scored_chunks.sort(key=lambda item: item[0], reverse=True)
+
+top_chunks = scored_chunks[:2]
+
+context = "\n\n".join(chunk for score, chunk in top_chunks)
+
+print("Selected context:", context)
 
 
-context = best_chunk 
 prompt = f"""
 Answer the question using only the context below.
 If the context does not contain the answer, say "I dont know based on the provided context."
@@ -94,13 +95,4 @@ answer_response = client.interactions.create(
 )
 
 print("Answer:", answer_response.output_text)
-
-
-
-
-
-
-
-
-
 
