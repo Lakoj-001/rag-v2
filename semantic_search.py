@@ -37,6 +37,7 @@ for record in chunk_records:
 
 print('Total chunks:', len(chunk_records))
 
+chunks = [record['text'] for record in chunk_records]
 
 raise SystemExit
 
@@ -137,29 +138,29 @@ for test_case in test_cases:
 
     scored_chunks = []
 
-    for chunk_id, (chunk, chunk_vector) in enumerate(
-        zip(chunks, chunk_embeddings), start=1
-    ):
+    for record, chunk_vector in zip(chunk_records, chunk_embeddings):
         score = cosine_similarity(question_vector, chunk_vector)
 
         print("Similarity:", score)
-        print("Chunk:", chunk)
+        print("Source:", record["source"])
+        print("Paragraph:", record["paragraph_id"])
+        print('Chunk:', record["text"])
         print()
 
-        scored_chunks.append((score, chunk_id, chunk))
+        scored_chunks.append((score, record))
 
     scored_chunks.sort(key=lambda item: item[0], reverse=True)
-
     top_chunks = scored_chunks[:2]
 
     retrieved_ids = [
-        chunk_id for score, chunk_id, chunk in top_chunks
+        f"{record['source']}:{record[paragraph_id]}"
+        for score, record in top_chunks
     ]
     print("Retrieved IDs:", retrieved_ids)
 
     context = "\n\n".join(
-        f"[Chunk: {chunk_id}]\n{chunk}"
-        for score, chunk_id, chunk in top_chunks
+        f"[{record['source']}:{record['paragraph_id']}]\n{record['text']}"
+        for score, record in top_chunks
     )
 
     print("Selected context:", context)
