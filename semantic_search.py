@@ -16,9 +16,29 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-file_path = Path("data/notes.txt")
-text = file_path.read_text(encoding="utf-8")
-chunks = text.split("\n\n")
+data_folder = Path("data")
+chunk_records = []
+
+for file_path in sorted(data_folder.glob("*.txt")):
+    text = file_path.read_text(encoding="utf-8")
+    paragraphs = text.strip().split("\n\n")
+
+    for paragraph_id, paragraph in enumerate(paragraphs, start=1):
+        chunk_records.append({
+            "text": paragraph, 
+            "source": file_path.name, 
+            "paragraph_id": paragraph_id
+        })
+
+for record in chunk_records:
+    print(f"[{record['source']}:{record['paragraph_id']}]")
+    print(record['text'])
+    print()
+
+print('Total chunks:', len(chunk_records))
+
+
+raise SystemExit
 
 test_cases = [
     {
