@@ -153,7 +153,7 @@ for test_case in test_cases:
     top_chunks = scored_chunks[:2]
 
     retrieved_ids = [
-        f"{record['source']}:{record[paragraph_id]}"
+        f"{record['source']}:{record['paragraph_id']}"
         for score, record in top_chunks
     ]
     print("Retrieved IDs:", retrieved_ids)
@@ -169,7 +169,7 @@ for test_case in test_cases:
     prompt = f"""
     Answer the question using only the context below.
     If the context does not contain the answer, say "I dont know based on the provided context."
-    Cite each factual claim using the supporting chunk label, such as [Chunk 2].
+    Cite each factual claim using the supporting chunk label, such as [notes.txt:2].
     Use only labels provided in the context.
     If you cannot answer from the context, give the refusal without a citation.
 
