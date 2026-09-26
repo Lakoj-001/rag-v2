@@ -1,8 +1,10 @@
 import os 
+import json
 from pathlib import Path
 from google import genai
 from dotenv import load_dotenv
 from google.genai import types
+
 
 
 load_dotenv()
@@ -49,14 +51,49 @@ def cosine_similarity(vector_a, vector_b):
 
     return dot_product / (length_a * length_b)
 
+embedding_model = "gemini-embedding-001"
+cache_path = Path("data/embeddings.json")
 
-chunk_response = client.models.embed_content(
-    model="gemini-embedding-001",
-    contents=chunks, 
-    config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
-)
+cache_data = None
 
-chunk_embeddings = chunk_response.embeddings
+if cache_path.exists():
+    cache_data = json.loads(
+        cache_path.read_text(encoding="utf-8")
+    )
+
+if (
+    cache_data is not None
+    and cache_data["model"] == embedding_model
+    and cache_data["chunks"] == chunks    
+):
+    chunk_embeddings = cache_data['embeddings']
+    print("Loaded document embeddings from cache.")
+
+else:
+    chunk_response = client.models.embed_content(
+        model=embedding_model,
+        contents=chunks, 
+        config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
+    )
+
+    chunk_embeddings = [
+        embedding.values
+        for embedding in chunk_response.embeddings
+    ] 
+
+    cache_data = {
+        "model": embedding_model, 
+        "chunks": chunks, 
+        "embeddings": chunk_embeddings
+    }
+
+    cache_path.write_text(
+        json.dumps(cache_data), 
+        encoding='utf-8'
+    )   
+    print("Created and saved document embeddings")
+
+raise SystemExit
 
 for test_case in test_cases:
     question = test_case["question"]
@@ -66,7 +103,7 @@ for test_case in test_cases:
     print("Expected", expected)
 
     question_response = client.models.embed_content(
-        model="gemini-embedding-001", 
+        model=embedding_model, 
         contents=question, 
         config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
     )
@@ -80,10 +117,9 @@ for test_case in test_cases:
 
     scored_chunks = []
 
-    for chunk_id, (chunk, embedding) in enumerate(
+    for chunk_id, (chunk, chunk_vector) in enumerate(
         zip(chunks, chunk_embeddings), start=1
     ):
-        chunk_vector = embedding.values
         score = cosine_similarity(question_vector, chunk_vector)
 
         print("Similarity:", score)
