@@ -93,7 +93,7 @@ else:
     )   
     print("Created and saved document embeddings")
 
-raise SystemExit
+
 
 for test_case in test_cases:
     question = test_case["question"]
